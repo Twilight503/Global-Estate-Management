@@ -24,7 +24,8 @@ const WHATSAPP_LINK = "40728315939";
 const EMAIL = "globalestatesrl@gmail.com";
 
 const BACKEND_ENDPOINT =
-  "http://84.247.164.129:3001/api/contact";
+  import.meta.env.VITE_BACKEND_ENDPOINT ||
+  "https://api.micrositeboss.com/api/contact";
 
 const services = [
   {
