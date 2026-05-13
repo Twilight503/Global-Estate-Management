@@ -76,17 +76,26 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function getTransporter() {
+async function getTransporter() {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     throw new Error("EMAIL_USER sau EMAIL_PASS lipsesc din Environment Variables.");
   }
 
+  const addresses = await dns.promises.resolve4("smtp.gmail.com");
+
+  if (!addresses || addresses.length === 0) {
+    throw new Error("Nu am găsit adresă IPv4 pentru smtp.gmail.com.");
+  }
+
+  const smtpIPv4 = addresses[0];
+
+  console.log("SMTP Gmail IPv4 folosit:", smtpIPv4);
+
   return nodemailer.createTransport({
-    host: "smtp.gmail.com",
+    host: smtpIPv4,
     port: 587,
     secure: false,
     requireTLS: true,
-    family: 4,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -99,7 +108,6 @@ function getTransporter() {
     },
   });
 }
-
 function getEmailErrorMessage(error) {
   const parts = [];
 
