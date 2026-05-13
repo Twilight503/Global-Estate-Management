@@ -7,8 +7,10 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS permisiv pentru test.
-// După ce merge tot, îl putem restrânge doar pe site-ul tău.
+/*
+  CORS permisiv pentru test.
+  Lasă așa până confirmăm că formularul + emailul merg.
+*/
 app.use(
   cors({
     origin: true,
@@ -17,11 +19,18 @@ app.use(
   })
 );
 
-// Limită anti-spam simplă
+app.use(express.json());
+
+/*
+  Anti-spam simplu.
+  30 cereri / 15 minute / IP.
+*/
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
     message: {
       ok: false,
       message: "Prea multe cereri. Încearcă mai târziu.",
@@ -29,8 +38,12 @@ app.use(
   })
 );
 
-// Upload poze în memorie.
-// 4 poze, max 5MB fiecare.
+/*
+  Upload poze:
+  - exact 4 poze
+  - max 5 MB / poză
+  - doar imagini
+*/
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -59,26 +72,129 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function getTransporter() {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("EMAIL_USER sau EMAIL_PASS lipsesc din Environment Variables.");
+  }
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
+  });
+}
+
+function getEmailErrorMessage(error) {
+  const parts = [];
+
+  if (error.message) parts.push(error.message);
+  if (error.code) parts.push(`code=${error.code}`);
+  if (error.responseCode) parts.push(`responseCode=${error.responseCode}`);
+  if (error.command) parts.push(`command=${error.command}`);
+
+  return parts.join(" | ") || "Eroare necunoscută la trimiterea emailului.";
+}
+
+/*
+  Test simplu dacă serverul e online.
+*/
 app.get("/", (req, res) => {
   res.json({
     ok: true,
     service: "Global Estate Network contact API",
+    routes: ["/api/test-email", "/api/contact"],
   });
 });
 
+/*
+  Dacă intri în browser pe /api/contact, browserul face GET.
+  Formularul folosește POST. Asta e doar ca să nu mai apară confuzia Cannot GET.
+*/
+app.get("/api/contact", (req, res) => {
+  res.json({
+    ok: true,
+    message: "Ruta există. Formularul trebuie să trimită POST aici, nu GET.",
+  });
+});
+
+/*
+  Test email FĂRĂ poze.
+  Comandă:
+  curl.exe -X POST "https://global-estate-management-email-api.onrender.com/api/test-email"
+*/
+app.post("/api/test-email", async (req, res) => {
+  try {
+    console.log("POST /api/test-email primit");
+    console.log("EMAIL_USER exista:", Boolean(process.env.EMAIL_USER));
+    console.log("EMAIL_PASS exista:", Boolean(process.env.EMAIL_PASS));
+    console.log("TO_EMAIL:", process.env.TO_EMAIL || process.env.EMAIL_USER);
+
+    const transporter = getTransporter();
+
+    console.log("Incep trimiterea emailului de test...");
+
+    await transporter.sendMail({
+      from: `"Global Estate Website" <${process.env.EMAIL_USER}>`,
+      to: process.env.TO_EMAIL || process.env.EMAIL_USER,
+      subject: "Test email Global Estate",
+      text: "Dacă ai primit acest email, backendul + Gmail SMTP funcționează.",
+    });
+
+    console.log("Email test trimis cu succes");
+
+    return res.json({
+      ok: true,
+      message: "Emailul de test a fost trimis cu succes.",
+    });
+  } catch (error) {
+    console.error("Test email error:", error);
+
+    return res.status(500).json({
+      ok: false,
+      message: getEmailErrorMessage(error),
+    });
+  }
+});
+
+/*
+  Formular real CU 4 poze.
+*/
 app.post("/api/contact", (req, res) => {
+  console.log("POST /api/contact primit");
+
   const uploadPhotos = upload.array("poze", 4);
 
   uploadPhotos(req, res, async (uploadError) => {
     try {
+      console.log("Upload procesat");
+
       if (uploadError) {
+        console.error("Upload error:", uploadError);
+
+        let message = uploadError.message || "Eroare la încărcarea pozelor.";
+
+        if (uploadError.code === "LIMIT_FILE_SIZE") {
+          message = "Una dintre poze depășește limita de 5 MB.";
+        }
+
+        if (uploadError.code === "LIMIT_FILE_COUNT") {
+          message = "Poți încărca maximum 4 poze.";
+        }
+
         return res.status(400).json({
           ok: false,
-          message: uploadError.message || "Eroare la încărcarea pozelor.",
+          message,
         });
       }
 
       const files = req.files || [];
+
+      console.log("Numar poze primite:", files.length);
 
       if (files.length !== 4) {
         return res.status(400).json({
@@ -93,6 +209,14 @@ app.post("/api/contact", (req, res) => {
       const tipProprietate = clean(req.body.tip_proprietate);
       const detalii = clean(req.body.detalii);
 
+      console.log("Date formular:", {
+        nume,
+        telefon,
+        zona,
+        tipProprietate,
+        areDetalii: Boolean(detalii),
+      });
+
       if (!nume || !telefon || !zona || !tipProprietate) {
         return res.status(400).json({
           ok: false,
@@ -100,20 +224,7 @@ app.post("/api/contact", (req, res) => {
         });
       }
 
-      if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-        return res.status(500).json({
-          ok: false,
-          message: "Emailul nu este configurat pe server.",
-        });
-      }
-
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
+      const transporter = getTransporter();
 
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
@@ -142,6 +253,8 @@ app.post("/api/contact", (req, res) => {
         contentType: file.mimetype,
       }));
 
+      console.log("Incep trimiterea emailului cu poze...");
+
       await transporter.sendMail({
         from: `"Global Estate Website" <${process.env.EMAIL_USER}>`,
         to: process.env.TO_EMAIL || process.env.EMAIL_USER,
@@ -150,16 +263,18 @@ app.post("/api/contact", (req, res) => {
         attachments,
       });
 
+      console.log("Email cu poze trimis cu succes");
+
       return res.json({
         ok: true,
         message: "Cererea a fost trimisă cu succes.",
       });
     } catch (error) {
-      console.error("Email error:", error);
+      console.error("Contact email error:", error);
 
       return res.status(500).json({
         ok: false,
-        message: "Nu s-a putut trimite emailul.",
+        message: getEmailErrorMessage(error),
       });
     }
   });
