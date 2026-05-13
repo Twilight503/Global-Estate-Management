@@ -25,7 +25,7 @@ const EMAIL = "globalestatesrl@gmail.com";
 
 const BACKEND_ENDPOINT =
   import.meta.env.VITE_BACKEND_ENDPOINT ||
-  "https://global-estate-management-email-api.onrender.com/api/contact";
+  "https://global-estate-management-api.onrender.com/api/contact";
 
 const services = [
   {
