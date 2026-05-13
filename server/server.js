@@ -11,6 +11,9 @@ dns.setDefaultResultOrder("ipv4first");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const MAX_PHOTOS = 12;
+const MAX_FILE_SIZE_MB = 5;
+
 /*
   CORS permisiv pentru test.
   Merge și local, și de pe site.
@@ -27,6 +30,7 @@ app.use(express.json());
 
 /*
   Anti-spam simplu.
+  Dacă te blochează la teste, mărește max sau comentează temporar blocul.
 */
 app.use(
   rateLimit({
@@ -43,15 +47,16 @@ app.use(
 
 /*
   Upload poze:
-  - exact 4 poze
+  - minimum 1 poză
+  - maximum 12 poze
   - maximum 5 MB / poză
   - doar imagini
 */
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    files: 4,
-    fileSize: 5 * 1024 * 1024,
+    files: MAX_PHOTOS,
+    fileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
   },
   fileFilter(req, file, callback) {
     if (file.mimetype && file.mimetype.startsWith("image/")) {
@@ -119,6 +124,11 @@ app.get("/", (req, res) => {
     ok: true,
     service: "Global Estate Network contact API",
     routes: ["/api/test-email", "/api/contact"],
+    upload: {
+      minPhotos: 1,
+      maxPhotos: MAX_PHOTOS,
+      maxFileSizeMb: MAX_FILE_SIZE_MB,
+    },
   });
 });
 
@@ -145,7 +155,7 @@ app.post("/api/test-email", async (req, res) => {
 
     const transporter = getTransporter();
 
-    console.log("Incep trimiterea emailului de test...");
+    console.log("Încep trimiterea emailului de test...");
 
     await transporter.sendMail({
       from: `"Global Estate Website" <${process.env.EMAIL_USER}>`,
@@ -171,12 +181,12 @@ app.post("/api/test-email", async (req, res) => {
 });
 
 /*
-  Formular real CU 4 poze.
+  Formular real CU 1-12 poze.
 */
 app.post("/api/contact", (req, res) => {
   console.log("POST /api/contact primit");
 
-  const uploadPhotos = upload.array("poze", 4);
+  const uploadPhotos = upload.array("poze", MAX_PHOTOS);
 
   uploadPhotos(req, res, async (uploadError) => {
     try {
@@ -188,11 +198,11 @@ app.post("/api/contact", (req, res) => {
         let message = uploadError.message || "Eroare la încărcarea pozelor.";
 
         if (uploadError.code === "LIMIT_FILE_SIZE") {
-          message = "Una dintre poze depășește limita de 5 MB.";
+          message = `Una dintre poze depășește limita de ${MAX_FILE_SIZE_MB} MB.`;
         }
 
         if (uploadError.code === "LIMIT_FILE_COUNT") {
-          message = "Poți încărca maximum 4 poze.";
+          message = `Poți încărca maximum ${MAX_PHOTOS} poze.`;
         }
 
         return res.status(400).json({
@@ -203,12 +213,19 @@ app.post("/api/contact", (req, res) => {
 
       const files = req.files || [];
 
-      console.log("Numar poze primite:", files.length);
+      console.log("Număr poze primite:", files.length);
 
-      if (files.length !== 4) {
+      if (files.length < 1) {
         return res.status(400).json({
           ok: false,
-          message: "Trebuie să adaugi exact 4 poze ale apartamentului.",
+          message: "Trebuie să adaugi cel puțin o poză a apartamentului.",
+        });
+      }
+
+      if (files.length > MAX_PHOTOS) {
+        return res.status(400).json({
+          ok: false,
+          message: `Poți adăuga maximum ${MAX_PHOTOS} poze ale apartamentului.`,
         });
       }
 
@@ -224,12 +241,13 @@ app.post("/api/contact", (req, res) => {
         zona,
         tipProprietate,
         areDetalii: Boolean(detalii),
+        numarPoze: files.length,
       });
 
       if (!nume || !telefon || !zona || !tipProprietate) {
         return res.status(400).json({
           ok: false,
-          message: "Completează nume, telefon, zonă și tip proprietate.",
+          message: "Completează nume, telefon, adresă și tip proprietate.",
         });
       }
 
@@ -241,8 +259,9 @@ app.post("/api/contact", (req, res) => {
 
           <p><strong>Nume:</strong> ${escapeHtml(nume)}</p>
           <p><strong>Telefon:</strong> ${escapeHtml(telefon)}</p>
-          <p><strong>Zona:</strong> ${escapeHtml(zona)}</p>
+          <p><strong>Adresă / zonă:</strong> ${escapeHtml(zona)}</p>
           <p><strong>Tip proprietate:</strong> ${escapeHtml(tipProprietate)}</p>
+          <p><strong>Număr poze atașate:</strong> ${files.length}</p>
 
           <p><strong>Detalii:</strong></p>
           <div style="padding: 12px; background: #f3f4f6; border-radius: 8px;">
@@ -262,7 +281,7 @@ app.post("/api/contact", (req, res) => {
         contentType: file.mimetype,
       }));
 
-      console.log("Incep trimiterea emailului cu poze...");
+      console.log("Încep trimiterea emailului cu poze...");
 
       await transporter.sendMail({
         from: `"Global Estate Website" <${process.env.EMAIL_USER}>`,

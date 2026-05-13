@@ -23,10 +23,6 @@ const PHONE_LINK = "+40728315939";
 const WHATSAPP_LINK = "40728315939";
 const EMAIL = "globalestatesrl@gmail.com";
 
-const BACKEND_ENDPOINT =
-  import.meta.env.VITE_BACKEND_ENDPOINT ||
-  "https://api.micrositeboss.com/api/contact";
-
 const services = [
   {
     icon: KeyRound,
@@ -67,30 +63,10 @@ const services = [
 ];
 
 const steps = [
-  {
-    number: "01",
-    title: "Evaluăm apartamentul",
-    description:
-      "Stabilim chiria realistă, publicul potrivit și ce trebuie optimizat înainte de promovare.",
-  },
-  {
-    number: "02",
-    title: "Îl închiriem corect",
-    description:
-      "Facem prezentarea, promovarea, vizionările, selecția chiriașului și semnarea documentelor.",
-  },
-  {
-    number: "03",
-    title: "Administrăm lunar",
-    description:
-      "Monitorizăm chiria, utilitățile, solicitările chiriașului și eventualele intervenții tehnice.",
-  },
-  {
-    number: "04",
-    title: "Primești raport și bani",
-    description:
-      "Tu rămâi informat, iar apartamentul funcționează ca un venit cât mai pasiv.",
-  },
+  ["01", "Evaluăm apartamentul", "Stabilim chiria realistă, publicul potrivit și ce trebuie optimizat înainte de promovare."],
+  ["02", "Îl închiriem corect", "Facem prezentarea, promovarea, vizionările, selecția chiriașului și semnarea documentelor."],
+  ["03", "Administrăm lunar", "Monitorizăm chiria, utilitățile, solicitările chiriașului și eventualele intervenții tehnice."],
+  ["04", "Primești raport și bani", "Tu rămâi informat, iar apartamentul funcționează ca un venit cât mai pasiv."],
 ];
 
 const painPoints = [
@@ -113,24 +89,14 @@ const pricing = [
     name: "Administrare Basic",
     price: "10% lunar",
     description: "Pentru apartamente deja închiriate sau închiriate prin noi.",
-    features: [
-      "Urmărire chirie",
-      "Verificare utilități",
-      "Comunicare chiriaș",
-      "Coordonare reparații simple",
-    ],
+    features: ["Urmărire chirie", "Verificare utilități", "Comunicare chiriaș", "Coordonare reparații simple"],
     highlighted: true,
   },
   {
     name: "Administrare Premium",
     price: "12–15% lunar",
     description: "Pentru proprietari care vor administrare completă și raportare detaliată.",
-    features: [
-      "Tot din Basic",
-      "Verificări periodice",
-      "Raport foto/video",
-      "Coordonare curățenie și mentenanță",
-    ],
+    features: ["Tot din Basic", "Verificări periodice", "Raport foto/video", "Coordonare curățenie și mentenanță"],
     highlighted: false,
   },
 ];
@@ -204,11 +170,19 @@ function LeadForm() {
   const [photoError, setPhotoError] = useState("");
   const [submitError, setSubmitError] = useState("");
 
+  const BACKEND_ENDPOINT =
+    import.meta.env.VITE_BACKEND_ENDPOINT ||
+    "https://api.micrositeboss.com/api/contact";
+
   const MAX_FILE_SIZE_MB = 5;
 
   function validatePhotos(files) {
-    if (files.length !== 4) {
-      return "Trebuie să adaugi exact 4 poze ale apartamentului.";
+    if (files.length < 1) {
+      return "Trebuie să adaugi cel puțin o poză a apartamentului.";
+    }
+
+    if (files.length > 4) {
+      return "Poți adăuga maximum 4 poze ale apartamentului.";
     }
 
     for (const file of files) {
@@ -292,21 +266,18 @@ function LeadForm() {
     >
       <div className="mb-5">
         <p className="text-sm font-semibold text-slate-500">Cerere evaluare gratuită</p>
-
         <h3 className="mt-1 text-2xl font-bold text-slate-950">
           Ai un apartament de administrat?
         </h3>
-
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Lasă datele și adaugă 4 poze ale apartamentului. Te contactăm pentru o
-          estimare realistă a chiriei și a pașilor următori.
+          Lasă datele și adaugă cel puțin o poză a apartamentului. Te contactăm
+          pentru o estimare realistă a chiriei și a pașilor următori.
         </p>
       </div>
 
       <div className="grid gap-3">
         <input
           name="nume"
-          autoComplete="name"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Nume proprietar"
           required
@@ -324,7 +295,6 @@ function LeadForm() {
 
         <input
           name="zona"
-          autoComplete="street-address"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Adresa exactă a apartamentului"
           required
@@ -354,12 +324,12 @@ function LeadForm() {
 
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
           <label className="block text-sm font-semibold text-slate-950">
-            Adaugă exact 4 poze ale apartamentului
+            Adaugă cel puțin o poză a apartamentului
           </label>
 
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Ideal: living, bucătărie, dormitor/cameră și baie. Fiecare poză
-            trebuie să aibă maximum {MAX_FILE_SIZE_MB} MB.
+            Ideal: living, bucătărie, dormitor/cameră și baie. Poți adăuga între
+            1 și 4 poze. Fiecare poză trebuie să aibă maximum {MAX_FILE_SIZE_MB} MB.
           </p>
 
           <input
@@ -380,12 +350,12 @@ function LeadForm() {
           <div className="mt-2 flex items-center justify-between gap-3 text-xs">
             <span
               className={
-                photoCount === 4
+                photoCount >= 1 && photoCount <= 4
                   ? "font-semibold text-emerald-700"
                   : "text-slate-500"
               }
             >
-              Poze selectate: {photoCount}/4
+              Poze selectate: {photoCount}/12
             </span>
 
             <span className="text-slate-400">Max. {MAX_FILE_SIZE_MB} MB / poză</span>
@@ -422,8 +392,8 @@ function LeadForm() {
       ) : null}
 
       <p className="mt-4 text-xs leading-5 text-slate-500">
-        Prin trimiterea formularului ești de acord să fii contactat pentru oferta
-        de administrare proprietate.
+        Prin trimiterea formularului ești de acord să fii contactat pentru
+        oferta de administrare proprietate.
       </p>
     </form>
   );
@@ -433,6 +403,20 @@ export default function GlobalEstateNetworkLanding() {
   const whatsappUrl = `https://wa.me/${WHATSAPP_LINK}?text=${encodeURIComponent(
     "Bună, am un apartament în București și vreau detalii despre administrare."
   )}`;
+
+  const reportCards = [
+    [Wallet, "Chirie", "Plată verificată lunar", "600 €"],
+    [FileText, "Contract", "Documente și inventar la zi", "OK"],
+    [Wrench, "Mentenanță", "Solicitări rezolvate prin furnizori", "1 intervenție"],
+    [CalendarCheck, "Verificare", "Raport foto/video la cerere", "Programat"],
+  ];
+
+  const trustItems = [
+    [ShieldCheck, "Proces-verbal cu inventar"],
+    [FileText, "Contract și evidență documente"],
+    [Wallet, "Monitorizare plăți"],
+    [MapPin, "Focus pe București și Ilfov"],
+  ];
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -530,57 +514,20 @@ export default function GlobalEstateNetworkLanding() {
                 </div>
 
                 <div className="mt-6 grid gap-4">
-                  <div className="flex items-center justify-between rounded-3xl bg-white/8 p-4 ring-1 ring-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                        <Wallet className="h-5 w-5" />
+                  {reportCards.map(([Icon, title, description, value]) => (
+                    <div key={title} className="flex items-center justify-between rounded-3xl bg-white/8 p-4 ring-1 ring-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold">{title}</p>
+                          <p className="mt-1 text-sm text-slate-300">{description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold">Chirie</p>
-                        <p className="mt-1 text-sm text-slate-300">Plată verificată lunar</p>
-                      </div>
+                      <p className="text-sm font-bold text-white">{value}</p>
                     </div>
-                    <p className="text-sm font-bold text-white">600 €</p>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-3xl bg-white/8 p-4 ring-1 ring-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">Contract</p>
-                        <p className="mt-1 text-sm text-slate-300">Documente și inventar la zi</p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold text-white">OK</p>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-3xl bg-white/8 p-4 ring-1 ring-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                        <Wrench className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">Mentenanță</p>
-                        <p className="mt-1 text-sm text-slate-300">Solicitări rezolvate prin furnizori</p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold text-white">1 intervenție</p>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-3xl bg-white/8 p-4 ring-1 ring-white/10">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-                        <CalendarCheck className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">Verificare</p>
-                        <p className="mt-1 text-sm text-slate-300">Raport foto/video la cerere</p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold text-white">Programat</p>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="mt-6 rounded-3xl bg-white p-5 text-slate-950">
@@ -658,15 +605,15 @@ export default function GlobalEstateNetworkLanding() {
           />
 
           <div className="mt-12 grid gap-5 lg:grid-cols-4">
-            {steps.map((step) => (
-              <Card key={step.number} className="relative overflow-hidden">
-                <p className="absolute right-5 top-4 text-6xl font-black text-slate-100">{step.number}</p>
+            {steps.map(([number, title, description]) => (
+              <Card key={number} className="relative overflow-hidden">
+                <p className="absolute right-5 top-4 text-6xl font-black text-slate-100">{number}</p>
                 <div className="relative">
                   <p className="mb-8 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-bold text-white">
-                    {step.number}
+                    {number}
                   </p>
-                  <h3 className="text-xl font-bold text-slate-950">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">{step.description}</p>
+                  <h3 className="text-xl font-bold text-slate-950">{title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
                 </div>
               </Card>
             ))}
@@ -687,34 +634,18 @@ export default function GlobalEstateNetworkLanding() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl bg-white/8 p-6 ring-1 ring-white/10">
-              <Star className="mb-4 h-6 w-6 text-amber-300" />
-              <h3 className="text-lg font-bold">Pentru proprietar</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Mai puține telefoane, mai mult control și o situație lunară clară.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/8 p-6 ring-1 ring-white/10">
-              <Star className="mb-4 h-6 w-6 text-amber-300" />
-              <h3 className="text-lg font-bold">Pentru chiriaș</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Un punct de contact rapid când apare o problemă reală.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/8 p-6 ring-1 ring-white/10">
-              <Star className="mb-4 h-6 w-6 text-amber-300" />
-              <h3 className="text-lg font-bold">Pentru apartament</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Verificări, inventar, poze și intervenții coordonate.
-              </p>
-            </div>
-            <div className="rounded-3xl bg-white/8 p-6 ring-1 ring-white/10">
-              <Star className="mb-4 h-6 w-6 text-amber-300" />
-              <h3 className="text-lg font-bold">Pentru venit</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Chiria este urmărită, iar perioadele goale pot fi reduse prin reînchiriere rapidă.
-              </p>
-            </div>
+            {[
+              ["Pentru proprietar", "Mai puține telefoane, mai mult control și o situație lunară clară."],
+              ["Pentru chiriaș", "Un punct de contact rapid când apare o problemă reală."],
+              ["Pentru apartament", "Verificări, inventar, poze și intervenții coordonate."],
+              ["Pentru venit", "Chiria este urmărită, iar perioadele goale pot fi reduse prin reînchiriere rapidă."],
+            ].map(([title, description]) => (
+              <div key={title} className="rounded-3xl bg-white/8 p-6 ring-1 ring-white/10">
+                <Star className="mb-4 h-6 w-6 text-amber-300" />
+                <h3 className="text-lg font-bold">{title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-300">{description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -784,30 +715,14 @@ export default function GlobalEstateNetworkLanding() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
-                  <ShieldCheck className="h-6 w-6" />
+              {trustItems.map(([Icon, text]) => (
+                <div key={text} className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <p className="font-semibold text-slate-800">{text}</p>
                 </div>
-                <p className="font-semibold text-slate-800">Proces-verbal cu inventar</p>
-              </div>
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <p className="font-semibold text-slate-800">Contract și evidență documente</p>
-              </div>
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
-                  <Wallet className="h-6 w-6" />
-                </div>
-                <p className="font-semibold text-slate-800">Monitorizare plăți</p>
-              </div>
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
-                  <MapPin className="h-6 w-6" />
-                </div>
-                <p className="font-semibold text-slate-800">Focus pe București și Ilfov</p>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -845,7 +760,7 @@ export default function GlobalEstateNetworkLanding() {
               Vrei să vezi dacă apartamentul tău se potrivește pentru administrare?
             </h2>
             <p className="mt-5 text-lg leading-8 text-slate-600">
-              Trimite-ne adresa exactă, tipul apartamentului și chiria dorită. Îți spunem ce se poate obține realist și ce variantă de administrare are sens.
+              Trimite-ne adresa, tipul apartamentului și chiria dorită. Îți spunem ce se poate obține realist și ce variantă de administrare are sens.
             </p>
 
             <div className="mt-8 grid gap-4">
