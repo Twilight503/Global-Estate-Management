@@ -24,7 +24,8 @@ const WHATSAPP_LINK = "40728315939";
 const EMAIL = "globalestatesrl@gmail.com";
 
 const BACKEND_ENDPOINT =
-  import.meta.env.VITE_BACKEND_ENDPOINT || "http://localhost:3001/api/contact";
+  import.meta.env.VITE_BACKEND_ENDPOINT ||
+  "https://global-estate-management-email-api.onrender.com/api/contact";
 
 const services = [
   {
