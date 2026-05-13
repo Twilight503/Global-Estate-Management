@@ -153,7 +153,7 @@ app.post("/api/test-email", async (req, res) => {
     console.log("EMAIL_PASS exista:", Boolean(process.env.EMAIL_PASS));
     console.log("TO_EMAIL:", process.env.TO_EMAIL || process.env.EMAIL_USER);
 
-    const transporter = getTransporter();
+    const transporter = await getTransporter();
 
     console.log("Incep trimiterea emailului de test...");
 
@@ -243,7 +243,7 @@ app.post("/api/contact", (req, res) => {
         });
       }
 
-      const transporter = getTransporter();
+      const transporter = await getTransporter();
 
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
