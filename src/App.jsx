@@ -67,17 +67,57 @@ function Card({ children, className = "" }) {
 
 function LeadForm() {
   const [status, setStatus] = useState("idle");
+  const [photoCount, setPhotoCount] = useState(0);
+  const [photoError, setPhotoError] = useState("");
 
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/mjglzjdz";
+  const MAX_FILE_SIZE_MB = 20;
+
+  function validatePhotos(files) {
+    if (files.length !== 4) {
+      return "Trebuie să adaugi exact 4 poze ale apartamentului.";
+    }
+
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) {
+        return "Poți încărca doar poze, nu PDF-uri sau alte fișiere.";
+      }
+
+      const sizeMb = file.size / 1024 / 1024;
+
+      if (sizeMb > MAX_FILE_SIZE_MB) {
+        return `Fiecare poză trebuie să aibă maximum ${MAX_FILE_SIZE_MB} MB.`;
+      }
+    }
+
+    return "";
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setStatus("loading");
+
+    setStatus("idle");
+    setPhotoError("");
 
     const form = event.currentTarget;
+    const photoInput = form.querySelector('input[name="poze"]');
+    const files = photoInput ? Array.from(photoInput.files || []) : [];
+
+    const validationMessage = validatePhotos(files);
+
+    if (validationMessage) {
+      setPhotoError(validationMessage);
+      return;
+    }
+
+    setStatus("loading");
+
     const formData = new FormData(form);
 
-    formData.append("_subject", "Lead nou - Administrare apartament Global Estate Network");
+    formData.append(
+      "_subject",
+      "Lead nou cu poze - Administrare apartament Global Estate Network"
+    );
 
     try {
       const response = await fetch(FORMSPREE_ENDPOINT, {
@@ -90,6 +130,8 @@ function LeadForm() {
 
       if (response.ok) {
         setStatus("success");
+        setPhotoCount(0);
+        setPhotoError("");
         form.reset();
       } else {
         setStatus("error");
@@ -102,15 +144,21 @@ function LeadForm() {
   return (
     <form
       onSubmit={handleSubmit}
+      encType="multipart/form-data"
       className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/10 md:p-6"
     >
       <div className="mb-5">
-        <p className="text-sm font-semibold text-slate-500">Cerere evaluare gratuită</p>
+        <p className="text-sm font-semibold text-slate-500">
+          Cerere evaluare gratuită
+        </p>
+
         <h3 className="mt-1 text-2xl font-bold text-slate-950">
           Ai un apartament de administrat?
         </h3>
+
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Lasă datele și te contactăm pentru o estimare realistă a chiriei și a pașilor următori.
+          Lasă datele și adaugă 4 poze ale apartamentului. Te contactăm pentru o
+          estimare realistă a chiriei și a pașilor următori.
         </p>
       </div>
 
@@ -157,6 +205,52 @@ function LeadForm() {
           className="min-h-[96px] rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Detalii utile: mobilat, bloc nou, chiria dorită, dacă există deja chiriaș etc."
         />
+
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <label className="block text-sm font-semibold text-slate-950">
+            Adaugă exact 4 poze ale apartamentului
+          </label>
+
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            Ideal: living, bucătărie, dormitor/cameră și baie.
+          </p>
+
+          <input
+            type="file"
+            name="poze"
+            accept="image/*"
+            multiple
+            required
+            onChange={(event) => {
+              const files = Array.from(event.target.files || []);
+              setPhotoCount(files.length);
+              setPhotoError(validatePhotos(files));
+            }}
+            className="mt-3 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+          />
+
+          <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+            <span
+              className={
+                photoCount === 4
+                  ? "font-semibold text-emerald-700"
+                  : "text-slate-500"
+              }
+            >
+              Poze selectate: {photoCount}/4
+            </span>
+
+            <span className="text-slate-400">
+              Max. {MAX_FILE_SIZE_MB} MB / poză
+            </span>
+          </div>
+
+          {photoError ? (
+            <div className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-medium text-red-800">
+              {photoError}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <button
@@ -164,7 +258,7 @@ function LeadForm() {
         disabled={status === "loading"}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {status === "loading" ? "Se trimite..." : "Vreau să fiu contactat"}
+        {status === "loading" ? "Se trimite..." : "Trimite oferta cu poze"}
         <ArrowRight className="h-4 w-4" />
       </button>
 
@@ -176,16 +270,19 @@ function LeadForm() {
 
       {status === "error" ? (
         <div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-800">
-          Nu s-a putut trimite formularul. Te rugăm să ne scrii direct pe WhatsApp sau să ne suni.
+          Nu s-a putut trimite formularul. Verifică dimensiunea pozelor sau
+          scrie-ne direct pe WhatsApp.
         </div>
       ) : null}
 
       <p className="mt-4 text-xs leading-5 text-slate-500">
-        Prin trimiterea formularului ești de acord să fii contactat pentru oferta de administrare proprietate.
+        Prin trimiterea formularului ești de acord să fii contactat pentru
+        oferta de administrare proprietate.
       </p>
     </form>
   );
 }
+
 
 export default function GlobalEstateNetworkLanding() {
   const included = [
