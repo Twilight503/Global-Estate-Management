@@ -68,7 +68,7 @@ function Card({ children, className = "" }) {
 function LeadForm() {
   const [status, setStatus] = useState("idle");
 
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/FORM_ID_TAU";
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mjglzjdz";
 
   async function handleSubmit(event) {
     event.preventDefault();
