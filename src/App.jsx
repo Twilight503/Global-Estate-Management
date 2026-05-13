@@ -66,19 +66,49 @@ function Card({ children, className = "" }) {
 }
 
 function LeadForm() {
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState("idle");
+
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/FORM_ID_TAU";
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setStatus("loading");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    formData.append("_subject", "Lead nou - Administrare apartament Global Estate Network");
+
+    try {
+      const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        body: formData,
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (response.ok) {
+        setStatus("success");
+        form.reset();
+      } else {
+        setStatus("error");
+      }
+    } catch (error) {
+      setStatus("error");
+    }
+  }
 
   return (
     <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        setSent(true);
-      }}
+      onSubmit={handleSubmit}
       className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl shadow-slate-900/10 md:p-6"
     >
       <div className="mb-5">
         <p className="text-sm font-semibold text-slate-500">Cerere evaluare gratuită</p>
-        <h3 className="mt-1 text-2xl font-bold text-slate-950">Ai un apartament de administrat?</h3>
+        <h3 className="mt-1 text-2xl font-bold text-slate-950">
+          Ai un apartament de administrat?
+        </h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Lasă datele și te contactăm pentru o estimare realistă a chiriei și a pașilor următori.
         </p>
@@ -86,21 +116,28 @@ function LeadForm() {
 
       <div className="grid gap-3">
         <input
+          name="nume"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Nume proprietar"
           required
         />
+
         <input
+          name="telefon"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Telefon"
           required
         />
+
         <input
+          name="zona"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Zona apartamentului"
           required
         />
+
         <select
+          name="tip_proprietate"
           className="rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600 outline-none transition focus:border-slate-950"
           defaultValue=""
           required
@@ -114,7 +151,9 @@ function LeadForm() {
           <option>Apartament 4+ camere</option>
           <option>Casă / vilă</option>
         </select>
+
         <textarea
+          name="detalii"
           className="min-h-[96px] rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-950"
           placeholder="Detalii utile: mobilat, bloc nou, chiria dorită, dacă există deja chiriaș etc."
         />
@@ -122,16 +161,24 @@ function LeadForm() {
 
       <button
         type="submit"
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+        disabled={status === "loading"}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        Vreau să fiu contactat <ArrowRight className="h-4 w-4" />
+        {status === "loading" ? "Se trimite..." : "Vreau să fiu contactat"}
+        <ArrowRight className="h-4 w-4" />
       </button>
 
-      {sent && (
+      {status === "success" ? (
         <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
-          Cererea a fost salvată în demo. La implementare o conectăm la WhatsApp, email sau CRM.
+          Cererea a fost trimisă. Te contactăm în cel mai scurt timp.
         </div>
-      )}
+      ) : null}
+
+      {status === "error" ? (
+        <div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-800">
+          Nu s-a putut trimite formularul. Te rugăm să ne scrii direct pe WhatsApp sau să ne suni.
+        </div>
+      ) : null}
 
       <p className="mt-4 text-xs leading-5 text-slate-500">
         Prin trimiterea formularului ești de acord să fii contactat pentru oferta de administrare proprietate.
