@@ -5,7 +5,7 @@ const multer = require("multer");
 const rateLimit = require("express-rate-limit");
 const dns = require("dns");
 
-// Forțăm Node să prefere IPv4, ca să nu mai încerce Gmail pe IPv6 și să dea ENETUNREACH.
+// Ajută Node să prefere IPv4, dar NU mai folosim dns.resolve4 manual.
 dns.setDefaultResultOrder("ipv4first");
 
 const app = express();
@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 
 /*
   CORS permisiv pentru test.
-  După ce confirmăm că merge emailul, îl putem restrânge doar la site-ul tău.
+  Merge și local, și de pe site.
 */
 app.use(
   cors({
@@ -27,7 +27,6 @@ app.use(express.json());
 
 /*
   Anti-spam simplu.
-  30 cereri / 15 minute / IP.
 */
 app.use(
   rateLimit({
@@ -45,7 +44,7 @@ app.use(
 /*
   Upload poze:
   - exact 4 poze
-  - max 5 MB / poză
+  - maximum 5 MB / poză
   - doar imagini
 */
 const upload = multer({
@@ -76,38 +75,30 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-async function getTransporter() {
+function getTransporter() {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     throw new Error("EMAIL_USER sau EMAIL_PASS lipsesc din Environment Variables.");
   }
 
-  const addresses = await dns.promises.resolve4("smtp.gmail.com");
-
-  if (!addresses || addresses.length === 0) {
-    throw new Error("Nu am găsit adresă IPv4 pentru smtp.gmail.com.");
-  }
-
-  const smtpIPv4 = addresses[0];
-
-  console.log("SMTP Gmail IPv4 folosit:", smtpIPv4);
-
   return nodemailer.createTransport({
-    host: smtpIPv4,
+    host: "smtp.gmail.com",
     port: 587,
     secure: false,
     requireTLS: true,
+    family: 4,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 30000,
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 40000,
     tls: {
       servername: "smtp.gmail.com",
     },
   });
 }
+
 function getEmailErrorMessage(error) {
   const parts = [];
 
@@ -115,12 +106,13 @@ function getEmailErrorMessage(error) {
   if (error.code) parts.push(`code=${error.code}`);
   if (error.responseCode) parts.push(`responseCode=${error.responseCode}`);
   if (error.command) parts.push(`command=${error.command}`);
+  if (error.hostname) parts.push(`hostname=${error.hostname}`);
 
   return parts.join(" | ") || "Eroare necunoscută la trimiterea emailului.";
 }
 
 /*
-  Test simplu dacă serverul e online.
+  Test dacă serverul e online.
 */
 app.get("/", (req, res) => {
   res.json({
@@ -143,8 +135,6 @@ app.get("/api/contact", (req, res) => {
 
 /*
   Test email FĂRĂ poze.
-  Comandă:
-  curl.exe -X POST "https://global-estate-management-email-api.onrender.com/api/test-email"
 */
 app.post("/api/test-email", async (req, res) => {
   try {
@@ -153,7 +143,7 @@ app.post("/api/test-email", async (req, res) => {
     console.log("EMAIL_PASS exista:", Boolean(process.env.EMAIL_PASS));
     console.log("TO_EMAIL:", process.env.TO_EMAIL || process.env.EMAIL_USER);
 
-    const transporter = await getTransporter();
+    const transporter = getTransporter();
 
     console.log("Incep trimiterea emailului de test...");
 
@@ -243,7 +233,7 @@ app.post("/api/contact", (req, res) => {
         });
       }
 
-      const transporter = await getTransporter();
+      const transporter = getTransporter();
 
       const html = `
         <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
