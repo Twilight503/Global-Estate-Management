@@ -7,35 +7,17 @@ const rateLimit = require("express-rate-limit");
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const STATIC_SITE_URL = "https://global-estate-management.onrender.com";
-
-const allowedOrigins = [
-  "http://localhost:5173",
-  STATIC_SITE_URL,
-  ...(process.env.ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim().replace(/\/$/, ""))
-    .filter(Boolean),
-];
-
+// CORS permisiv pentru test.
+// După ce merge tot, îl putem restrânge doar pe site-ul tău.
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      const cleanOrigin = origin.replace(/\/$/, "");
-
-      if (allowedOrigins.includes(cleanOrigin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Accept"],
   })
 );
 
+// Limită anti-spam simplă
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -47,6 +29,8 @@ app.use(
   })
 );
 
+// Upload poze în memorie.
+// 4 poze, max 5MB fiecare.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -132,17 +116,24 @@ app.post("/api/contact", (req, res) => {
       });
 
       const html = `
-        <h2>Lead nou - Administrare apartament</h2>
+        <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111827;">
+          <h2>Lead nou - Administrare apartament</h2>
 
-        <p><strong>Nume:</strong> ${escapeHtml(nume)}</p>
-        <p><strong>Telefon:</strong> ${escapeHtml(telefon)}</p>
-        <p><strong>Zona:</strong> ${escapeHtml(zona)}</p>
-        <p><strong>Tip proprietate:</strong> ${escapeHtml(tipProprietate)}</p>
-        <p><strong>Detalii:</strong><br>${escapeHtml(detalii).replaceAll("\n", "<br>")}</p>
+          <p><strong>Nume:</strong> ${escapeHtml(nume)}</p>
+          <p><strong>Telefon:</strong> ${escapeHtml(telefon)}</p>
+          <p><strong>Zona:</strong> ${escapeHtml(zona)}</p>
+          <p><strong>Tip proprietate:</strong> ${escapeHtml(tipProprietate)}</p>
 
-        <hr>
+          <p><strong>Detalii:</strong></p>
+          <div style="padding: 12px; background: #f3f4f6; border-radius: 8px;">
+            ${escapeHtml(detalii).replaceAll("\n", "<br>")}
+          </div>
 
-        <p>Formular trimis de pe site-ul Global Estate Network.</p>
+          <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;">
+
+          <p>Formular trimis de pe site-ul Global Estate Network.</p>
+          <p>Pozele apartamentului sunt atașate acestui email.</p>
+        </div>
       `;
 
       const attachments = files.map((file, index) => ({
