@@ -69,9 +69,12 @@ function LeadForm() {
   const [status, setStatus] = useState("idle");
   const [photoCount, setPhotoCount] = useState(0);
   const [photoError, setPhotoError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/mjglzjdz";
-  const MAX_FILE_SIZE_MB = 20;
+  const BACKEND_ENDPOINT =
+    "https://global-estate-management-email-api.onrender.com/api/contact";
+
+  const MAX_FILE_SIZE_MB = 5;
 
   function validatePhotos(files) {
     if (files.length !== 4) {
@@ -98,6 +101,7 @@ function LeadForm() {
 
     setStatus("idle");
     setPhotoError("");
+    setSubmitError("");
 
     const form = event.currentTarget;
     const photoInput = form.querySelector('input[name="poze"]');
@@ -114,30 +118,39 @@ function LeadForm() {
 
     const formData = new FormData(form);
 
-    formData.append(
-      "_subject",
-      "Lead nou cu poze - Administrare apartament Global Estate Network"
-    );
-
     try {
-      const response = await fetch(FORMSPREE_ENDPOINT, {
+      const response = await fetch(BACKEND_ENDPOINT, {
         method: "POST",
         body: formData,
-        headers: {
-          Accept: "application/json",
-        },
       });
+
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
 
       if (response.ok) {
         setStatus("success");
         setPhotoCount(0);
         setPhotoError("");
+        setSubmitError("");
         form.reset();
       } else {
         setStatus("error");
+        setSubmitError(
+          data?.message ||
+            "Nu s-a putut trimite formularul. Verifică pozele sau încearcă din nou."
+        );
       }
     } catch (error) {
+      console.error("Form submit error:", error);
       setStatus("error");
+      setSubmitError(
+        "Nu s-a putut conecta la server. Încearcă din nou sau scrie-ne direct pe WhatsApp."
+      );
     }
   }
 
@@ -212,7 +225,8 @@ function LeadForm() {
           </label>
 
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Ideal: living, bucătărie, dormitor/cameră și baie.
+            Ideal: living, bucătărie, dormitor/cameră și baie. Fiecare poză
+            trebuie să aibă maximum {MAX_FILE_SIZE_MB} MB.
           </p>
 
           <input
@@ -225,6 +239,7 @@ function LeadForm() {
               const files = Array.from(event.target.files || []);
               setPhotoCount(files.length);
               setPhotoError(validatePhotos(files));
+              setSubmitError("");
             }}
             className="mt-3 block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-slate-950 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
           />
@@ -270,8 +285,8 @@ function LeadForm() {
 
       {status === "error" ? (
         <div className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-medium text-red-800">
-          Nu s-a putut trimite formularul. Verifică dimensiunea pozelor sau
-          scrie-ne direct pe WhatsApp.
+          {submitError ||
+            "Nu s-a putut trimite formularul. Verifică dimensiunea pozelor sau scrie-ne direct pe WhatsApp."}
         </div>
       ) : null}
 
@@ -282,7 +297,6 @@ function LeadForm() {
     </form>
   );
 }
-
 
 export default function GlobalEstateNetworkLanding() {
   const included = [
