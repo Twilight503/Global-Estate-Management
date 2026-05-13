@@ -3,13 +3,17 @@ const cors = require("cors");
 const nodemailer = require("nodemailer");
 const multer = require("multer");
 const rateLimit = require("express-rate-limit");
+const dns = require("dns");
+
+// Forțăm Node să prefere IPv4, ca să nu mai încerce Gmail pe IPv6 și să dea ENETUNREACH.
+dns.setDefaultResultOrder("ipv4first");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 /*
   CORS permisiv pentru test.
-  Lasă așa până confirmăm că formularul + emailul merg.
+  După ce confirmăm că merge emailul, îl putem restrânge doar la site-ul tău.
 */
 app.use(
   cors({
@@ -78,7 +82,11 @@ function getTransporter() {
   }
 
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    family: 4,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -86,6 +94,9 @@ function getTransporter() {
     connectionTimeout: 15000,
     greetingTimeout: 15000,
     socketTimeout: 30000,
+    tls: {
+      servername: "smtp.gmail.com",
+    },
   });
 }
 
@@ -113,7 +124,7 @@ app.get("/", (req, res) => {
 
 /*
   Dacă intri în browser pe /api/contact, browserul face GET.
-  Formularul folosește POST. Asta e doar ca să nu mai apară confuzia Cannot GET.
+  Formularul folosește POST.
 */
 app.get("/api/contact", (req, res) => {
   res.json({
